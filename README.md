@@ -288,33 +288,41 @@ To add a new environment to our framework:
 
 4. Add the environment tag to the `es_manager` section in `config/base.yaml`
 
-## Using RAGEN with dstack orchestrator
+## Using RAGEN with dstack
 
-[dstack](https://github.com/dstackai/dstack) simplifies distributed-training by providing streamlined alternative to K8s/Slurm.
+[dstackai/dstack](https://github.com/dstackai/dstack) is an open-source container orchestrator that simplifies distributed training across cloud providers and on-premises environments
+without the need to use K8S or Slurm.
 
-#### How to run training jobs with dstack:
-1. Create fleet
+### 1. Create fleet
 
-   Before submitting disributed training jobs, make sure to create a [fleet] (https://dstack.ai/docs/concepts/fleets/#ssh). dstack supports various cloud providers through `cloud fleets` and on-prem servers through `SSH fleets`.
+Before submitting distributed training jobs, create a `dstack` [fleet](https://dstack.ai/docs/concepts/fleets).
 
-2. Run a Ray cluster task
+### 2. Run a Ray cluster task
 
-   Define a Ray cluster task and apply the configuration as shown below:
+Once the fleet is created, define and apply a Ray cluster task:
 
-   ```shell
-   $ dstack apply -f examples/distributed-training/ray-ragen/.dstack.yml
-   ```
-   
-3. Submit a training job
+```shell
+$ dstack apply -f examples/distributed-training/ray-ragen/.dstack.yml
+```
 
-   Now you can submit training job locally to the Ray cluster as shown below:
+You can find the task configuration example at [`examples/distributed-training/ray-ragen/.dstack.yml`](https://github.com/dstackai/dstack/blob/master/examples/distributed-training/ray-ragen/.dstack.yml).
 
-   ```shell
-   $ RAY_ADDRESS=http://localhost:8265
-   $ ray job submit \
-             ...
-   ```
-For a detailed example of using RAGEN with dstack, check the corresponding example in dstack [docs](https://github.com/dstackai/dstack/tree/master/docs/examples/distributed-training/ray-ragen).
+The `dstack apply` command will provision the Ray cluster with all dependencies and forward the Ray dashboard port to `localhost:8265`.
+
+
+### 3. Submit a training job
+
+Now you can submit a training job locally to the Ray cluster:
+
+```shell
+$ RAY_ADDRESS=http://localhost:8265
+$ ray job submit \
+    ...
+```
+
+See the full [RAGEN+Ray example](https://github.com/dstackai/dstack/tree/master/docs/examples/distributed-training/ray-ragen).
+
+For more details on how `dstack` can be used for distributed training, check out the [Clusters](https://dstack.ai/docs/guides/clusters/) guide.
 
 ## Feedback
 We welcome all forms of feedback! Please raise an issue for bugs, questions, or suggestions. This helps our team address common problems efficiently and builds a more productive community.
