@@ -288,101 +288,33 @@ To add a new environment to our framework:
 
 4. Add the environment tag to the `es_manager` section in `config/base.yaml`
 
-## Multinode Training with dstack
+## Using RAGEN with dstack orchestrator
 
-If you want to run multi-node training with [dstack](https://dstack.ai/) on NVIDIA Cluster, you need to follow the following steps.
+[dstack](https://github.com/dstackai/dstack) simplifies distributed-training by providing streamlined alternative to K8s/Slurm.
 
-1. Prerequisite
+#### How to run training jobs with dstack:
+1. Create fleet
 
-   Once dstack is [installed](https://dstack.ai/docs/installation/), go ahead clone the repo, and run dstack init.
+   Before submitting disributed training jobs, make sure to create a [fleet] (https://dstack.ai/docs/concepts/fleets/#ssh). dstack supports various cloud providers through `cloud fleets` and on-prem servers through `SSH fleets`.
 
-   ```shell
-   $ git clone https://github.com/dstackai/dstack
-   $ cd dstack
-   $ dstack init
-   ```
+2. Run a Ray cluster task
 
-2. Create fleet
-
-   Before submitted disributed training runs, make sure to create a fleet with a `placement` set to `cluster`.
-
-   > For more detials on how to use clusters with `dstack`, check the [Clusters](https://dstack.ai/docs/guides/clusters) guide.
-
-3. Run a Ray cluster
-
-   If you want to use Ray with `dstack`, you have to first run a Ray cluster.
-
-   The [task](https://dstack.ai/docs/concepts/tasks/) below runs a Ray cluster on an existing fleet:
-
-   ```yaml
-   type: task
-   name: ray-ragen-cluster
-
-   nodes: 2
-
-   env:
-     - WANDB_API_KEY
-   image: whatcanyousee/verl:ngc-cu124-vllm0.8.5-sglang0.4.6-mcore0.12.0-te2.2
-   commands:
-     - wget -O miniconda.sh https://repo.anaconda.com/miniconda/    Miniconda3-latest-Linux-x86_64.sh
-     - bash miniconda.sh -b -p /workflow/miniconda
-     - eval "$(/workflow/miniconda/bin/conda shell.bash hook)"
-     - git clone https://github.com/RAGEN-AI/RAGEN.git
-     - cd RAGEN
-     - bash scripts/setup_ragen.sh
-     - conda activate ragen
-     - cd verl
-     - pip install --no-deps -e .
-     - pip install hf_transfer hf_xet
-     - pip uninstall -y ray
-     - pip install -U "ray[default]"
-     - |
-       if [ $DSTACK_NODE_RANK = 0 ]; then 
-           ray start --head --port=6379;
-       else
-           ray start --address=$DSTACK_MASTER_NODE_IP:6379
-        fi
-
-    # Expose Ray dashboard port
-    ports:
-      - 8265
-
-    resources:
-      gpu: 80GB:8
-      shm_size: 128GB
-
-    # Save checkpoints on the instance
-    volumes:
-      - /checkpoints:/checkpoints
-    ```
-4. Submit Ray jobs
-
-   Before you can submit Ray jobs, ensure to install `ray` locally:
+   Define a Ray cluster task and apply the configuration as shown below:
 
    ```shell
-   $ pip install ray
+   $ dstack apply -f examples/distributed-training/ray-ragen/.dstack.yml
    ```
-   Now you can submit the training job to the Ray cluster which is available at `localhost:8265`:
+   
+3. Submit a training job
+
+   Now you can submit training job locally to the Ray cluster as shown below:
 
    ```shell
    $ RAY_ADDRESS=http://localhost:8265
    $ ray job submit \
-     -- bash -c "\
-       export PYTHONPATH=/workflow/RAGEN; \
-       cd /workflow/RAGEN; \
-       /workflow/miniconda/envs/ragen/bin/python train.py \
-         --config-name base \
-         system.CUDA_VISIBLE_DEVICES=[0,1,2,3,4,5,6,7] \
-         model_path=Qwen/Qwen2.5-7B-Instruct \
-         trainer.experiment_name=agent-fine-tuning-Qwen2.5-7B \
-         trainer.n_gpus_per_node=8 \
-         trainer.nnodes=2 \
-         micro_batch_size_per_gpu=2 \
-         trainer.default_local_dir=/checkpoints \
-         trainer.save_freq=50 \
-         actor_rollout_ref.rollout.tp_size_check=False \
-         actor_rollout_ref.rollout.tensor_model_parallel_size=4"
+             ...
    ```
+For a detailed example of using RAGEN with dstack, check the corresponding example in dstack [docs](https://github.com/dstackai/dstack/tree/master/docs/examples/distributed-training/ray-ragen).
 
 ## Feedback
 We welcome all forms of feedback! Please raise an issue for bugs, questions, or suggestions. This helps our team address common problems efficiently and builds a more productive community.
